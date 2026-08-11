@@ -1,0 +1,48 @@
+:root {
+  --bg: #0b0f1a;
+  --panel: #131a2b;
+  --panel2: #1a2338;
+  --border: #26304a;
+  --text: #e6ecf7;
+  --muted: #8a97b3;
+  --accent: #5b8cff;
+  --green: #35c98a;
+  --amber: #f2b04e;
+  --red: #f56b6b;
+}
+* { box-sizing: border-box; }
+html, body { padding: 0; margin: 0; background: var(--bg); color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+a { color: var(--accent); }
+button {
+  font: inherit; cursor: pointer; border: 1px solid var(--border); background: var(--panel2);
+  color: var(--text); padding: 7px 13px; border-radius: 8px;
+}
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button.danger { border-color: #5a2b2b; color: #ff9c9c; }
+input, select, textarea {
+  font: inherit; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; width: 100%;
+}
+label { font-size: 12px; color: var(--muted); display: block; margin: 8px 0 3px; }
+.container { max-width: 1080px; margin: 0 auto; padding: 20px; }
+.row { display: flex; gap: 12px; align-items: center; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.muted { color: var(--muted); }
+.pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); }
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: .04em; }
+.b-pending { background: #232a3d; color: var(--muted); }
+.b-running { background: #1f2c4d; color: var(--accent); }
+.b-awaiting_approval { background: #3a2e12; color: var(--amber); }
+.b-paused { background: #3a2e12; color: var(--amber); }
+.b-succeeded { background: #10331f; color: var(--green); }
+.b-failed { background: #3a1a1a; color: var(--red); }
+.b-skipped { background: #21283a; color: var(--muted); }
+.b-queued { background: #232a3d; color: var(--muted); }
+h1, h2, h3 { margin: 0 0 10px; }
+.grid { display: grid; gap: 12px; }
+.small { font-size: 12px; }
+code { background: #0e1424; padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+.stepline { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }

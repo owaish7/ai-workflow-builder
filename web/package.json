@@ -1,0 +1,27 @@
+{
+  "name": "ai-workflow-builder-web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@nhost/nhost-js": "^3.2.7",
+    "@nhost/react": "^3.9.3",
+    "graphql": "^16.9.0",
+    "graphql-ws": "^5.16.0",
+    "next": "^14.2.35",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "urql": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.5.4"
+  }
+}
