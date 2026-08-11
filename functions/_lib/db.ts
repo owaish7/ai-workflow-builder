@@ -7,10 +7,11 @@ const REGION = process.env.NHOST_REGION || '';
 const ADMIN_SECRET =
   process.env.NHOST_ADMIN_SECRET || process.env.HASURA_GRAPHQL_ADMIN_SECRET || '';
 
-// Resolve the GraphQL endpoint from whichever env var nhost provides. If your project's
-// functions don't get NHOST_SUBDOMAIN/REGION, set HASURA_GRAPHQL_URL as a project env var.
+// Resolve the GraphQL endpoint. Primary override is GRAPHQL_ENDPOINT (a user-set project
+// env var — nhost forbids custom names starting with NHOST_/HASURA_/etc.). The remaining
+// fallbacks read nhost's own auto-injected system vars.
 export const GRAPHQL_URL =
-  process.env.HASURA_GRAPHQL_URL ||
+  process.env.GRAPHQL_ENDPOINT ||
   process.env.NHOST_GRAPHQL_URL ||
   (process.env.NHOST_BACKEND_URL ? `${process.env.NHOST_BACKEND_URL}/v1/graphql` : '') ||
   `https://${SUBDOMAIN}.hasura.${REGION}.nhost.run/v1/graphql`;

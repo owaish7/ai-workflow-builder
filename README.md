@@ -48,10 +48,10 @@ small Node scripts that call Hasura's APIs directly.
 1. Create a project. Note its **subdomain** and **region**.
 2. **Settings → Sign-in methods → Email and Password:** enabled, and turn **“Require
    email verification” OFF** (so demo users can sign in immediately).
-3. **Settings → Environment Variables** — add:
+3. **Settings → Environment Variables** — add (nhost forbids custom names starting with
+   `NHOST_`/`HASURA_`, so the GraphQL URL uses a neutral name the functions read):
    - `GROQ_API_KEY` = your Groq key
-   - `HASURA_GRAPHQL_URL` = `https://<subdomain>.hasura.<region>.nhost.run/v1/graphql`
-   - `FUNCTIONS_BASE_URL` = `https://<subdomain>.functions.<region>.nhost.run`
+   - `GRAPHQL_ENDPOINT` = `https://<subdomain>.hasura.<region>.nhost.run/v1/graphql`
 4. **Settings → Hasura:** copy the **admin secret**.
 
 ### 2. Apply schema + Hasura config
