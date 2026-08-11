@@ -1,0 +1,14 @@
+{
+  "name": "ai-workflow-builder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A mini n8n for chaining AI agent steps — nhost + Hasura + Next.js",
+  "type": "module",
+  "scripts": {
+    "setup:db": "node scripts/setup-db.mjs",
+    "setup:hasura": "node scripts/setup-hasura.mjs",
+    "setup": "node scripts/setup-db.mjs && node scripts/setup-hasura.mjs",
+    "seed": "node scripts/seed.mjs"
+  },
+  "engines": { "node": ">=20" }
+}
