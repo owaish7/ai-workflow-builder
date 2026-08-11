@@ -238,24 +238,26 @@ async function main() {
 
   // ---------------- 5. cron trigger (Scheduled) ----------------
   console.log('# cron trigger');
+  await meta('delete_cron_trigger', { name: 'scheduled_workflow_tick' }, { ignore: IGN_EXISTS });
   await meta('create_cron_trigger', {
     name: 'scheduled_workflow_tick', webhook: fn('scheduled'), schedule: '* * * * *',
     payload: {}, include_in_metadata: true, headers: secretHeader,
     retry_conf: { num_retries: 0, timeout_seconds: 60, tolerance_seconds: 21600, retry_interval_seconds: 10 },
-    replace: true,
   });
 
   // ---------------- 6. event triggers (DB-event + notify) ----------------
   console.log('# event triggers');
+  await meta('pg_delete_event_trigger', { source: src, name: 'on_event_source_insert' }, { ignore: IGN_EXISTS });
   await meta('pg_create_event_trigger', {
     source: src, name: 'on_event_source_insert', table: T('event_source'), webhook: fn('dbEvent'),
     insert: { columns: '*' }, headers: secretHeader,
-    retry_conf: { num_retries: 0, interval_sec: 10, timeout_sec: 60 }, replace: true,
+    retry_conf: { num_retries: 0, interval_sec: 10, timeout_sec: 60 },
   });
+  await meta('pg_delete_event_trigger', { source: src, name: 'on_notification_insert' }, { ignore: IGN_EXISTS });
   await meta('pg_create_event_trigger', {
     source: src, name: 'on_notification_insert', table: T('notifications'), webhook: fn('notify'),
     insert: { columns: '*' }, headers: secretHeader,
-    retry_conf: { num_retries: 0, interval_sec: 10, timeout_sec: 60 }, replace: true,
+    retry_conf: { num_retries: 0, interval_sec: 10, timeout_sec: 60 },
   });
 
   console.log('\nDone. Hasura configured.');
