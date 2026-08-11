@@ -1,15 +1,13 @@
 // SCHEDULED trigger. Hit every minute by the Hasura cron trigger `scheduled_workflow_tick`.
 // Fires any `scheduled` trigger whose interval has elapsed since its last scheduled run.
 // Trigger config: { intervalMinutes?: number = 60, enabled?: boolean = true }.
-import { admin, verifyWebhookSecret } from './_lib/db';
-import { runWorkflow } from './_lib/executor';
+import { admin, verifyActionSecret } from '@/lib/server/db';
+import { runWorkflow } from '@/lib/server/executor';
 
-const LIST = `query {
-  workflow_triggers(where: { type: { _eq: "scheduled" } }) {
-    workflow_id config
-  }
-}`;
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
+const LIST = `query { workflow_triggers(where: { type: { _eq: "scheduled" } }) { workflow_id config } }`;
 const LAST_RUN = `query ($w: uuid!) {
   workflow_runs(
     where: { workflow_id: { _eq: $w }, trigger_type: { _eq: "scheduled" } },
@@ -17,9 +15,8 @@ const LAST_RUN = `query ($w: uuid!) {
   ) { started_at }
 }`;
 
-export default async function handler(req: any, res: any) {
-  if (!verifyWebhookSecret(req)) return res.status(401).json({ message: 'bad webhook secret' });
-
+export async function POST(req: Request) {
+  if (!verifyActionSecret(req)) return Response.json({ message: 'bad action secret' }, { status: 401 });
   const fired: string[] = [];
   try {
     const { workflow_triggers: triggers } = await admin<any>(LIST);
@@ -34,8 +31,8 @@ export default async function handler(req: any, res: any) {
         fired.push(t.workflow_id);
       }
     }
-    return res.status(200).json({ fired });
+    return Response.json({ fired });
   } catch (e: any) {
-    return res.status(500).json({ message: String(e?.message || e) });
+    return Response.json({ message: String(e?.message || e) }, { status: 500 });
   }
 }

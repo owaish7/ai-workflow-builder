@@ -21,9 +21,8 @@ const PRESET: Record<string, any> = {
   approval_gate: {},
 };
 
-const SUB = process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN || '';
-const REG = process.env.NEXT_PUBLIC_NHOST_REGION || '';
-const WEBHOOK_URL = `https://${SUB}.functions.${REG}.nhost.run/webhook`;
+const WEBHOOK_URL =
+  typeof window !== 'undefined' ? `${window.location.origin}/api/webhook` : '/api/webhook';
 
 export default function WorkflowPanel({ workflow, role, orgId, onChanged, onRan }: any) {
   const client = useClient();

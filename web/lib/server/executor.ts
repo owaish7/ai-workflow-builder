@@ -8,7 +8,6 @@ import { llmCall } from './groq';
 export type Ctx = { userId?: string | null; system?: boolean; triggerType: string };
 type RunResult = { run_id?: string; status: string; message?: string };
 
-// ---------------- GraphQL documents ----------------
 const GET_WORKFLOW = `query ($id: uuid!) {
   workflows_by_pk(id: $id) {
     id org_id name
@@ -52,7 +51,6 @@ const INSERT_NOTIFY = `mutation ($obj: notifications_insert_input!) {
   insert_notifications_one(object: $obj) { id }
 }`;
 
-// ---------------- helpers ----------------
 function toText(v: any): string {
   if (v == null) return '';
   if (typeof v === 'string') return v;
@@ -89,7 +87,6 @@ function evalCondition(cfg: any, prev: any): boolean {
 const setStep = (id: string, set: any) => admin(UPDATE_STEP_RUN, { id, set });
 const setRun = (id: string, set: any) => admin(UPDATE_RUN, { id, set });
 
-// Run a single step. Returns its output plus an optional control signal for branching.
 async function executeStep(
   step: any, prev: any, wf: any, runId: string,
 ): Promise<{ output: any; control?: 'skip_next' | 'stop'; attempt: number }> {
@@ -122,7 +119,7 @@ async function executeStep(
     }
     case 'notify': {
       const message = cfg.message ?? `Notify: ${toText(prev).slice(0, 200)}`;
-      // Inserting here fires the `on_notification_insert` Hasura Event Trigger -> notify fn.
+      // Inserting here fires the `on_notification_insert` Hasura Event Trigger -> notify route.
       await admin(INSERT_NOTIFY, { obj: { run_id: runId, org_id: wf.org_id, channel: cfg.channel || 'log', message } });
       return { output: { notified: true, message }, attempt: 1 };
     }
@@ -137,7 +134,6 @@ async function executeStep(
   }
 }
 
-// The shared loop. `startIndex` and `prev` let it start fresh or resume after a gate.
 async function executeFrom(
   runId: string, wf: any, steps: any[], stepRunByStep: Record<string, string>,
   startIndex: number, prev: any,
@@ -173,9 +169,6 @@ async function executeFrom(
   return { run_id: runId, status: 'succeeded' };
 }
 
-// ---------------- public entry points ----------------
-
-// Start a fresh run. Enforces caller role (unless system-triggered) and quota.
 export async function runWorkflow(opts: { workflowId: string; ctx: Ctx }): Promise<RunResult> {
   const { workflows_by_pk: wf } = await admin<any>(GET_WORKFLOW, { id: opts.workflowId });
   if (!wf) return { status: 'error', message: 'workflow not found' };
@@ -208,7 +201,6 @@ export async function runWorkflow(opts: { workflowId: string; ctx: Ctx }): Promi
   return executeFrom(run.id, wf, wf.steps, stepRunByStep, 0, null);
 }
 
-// Resume a paused run after an approval gate at `gatePosition`.
 export async function resumeWorkflow(runId: string, gatePosition: number): Promise<RunResult> {
   const { workflow_runs_by_pk: run } = await admin<any>(GET_RUN, { id: runId });
   if (!run) return { status: 'error', message: 'run not found' };
@@ -218,8 +210,6 @@ export async function resumeWorkflow(runId: string, gatePosition: number): Promi
   const stepRunByStep: Record<string, string> = {};
   for (const sr of run.step_runs) stepRunByStep[sr.step_id] = sr.id;
 
-  // Reconstruct the value downstream steps consume: output of the last succeeded step
-  // before the gate.
   const before = run.step_runs
     .filter((sr: any) => sr.position < gatePosition && sr.status === 'succeeded')
     .sort((a: any, b: any) => b.position - a.position);
@@ -228,7 +218,6 @@ export async function resumeWorkflow(runId: string, gatePosition: number): Promi
   const startIndex = steps.findIndex((s: any) => s.position > gatePosition);
   await setRun(runId, { status: 'running' });
   if (startIndex === -1) {
-    // gate was the last step -> nothing left; complete.
     await setRun(runId, { status: 'succeeded', finished_at: new Date().toISOString() });
     await admin(INC_QUOTA, { id: wf.org_id });
     return { run_id: runId, status: 'succeeded' };

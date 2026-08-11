@@ -1,12 +1,14 @@
 // NOTIFY step, implemented as a Hasura Event Trigger (`on_notification_insert`).
 // Fired whenever a `notify` step inserts into public.notifications. Delivery is stubbed
-// (logged); if SLACK_WEBHOOK_URL is set it will also post to Slack — the wiring is real.
-import { verifyWebhookSecret } from './_lib/db';
+// (logged); if SLACK_WEBHOOK_URL is set and channel is "slack" it also posts to Slack.
+import { verifyActionSecret } from '@/lib/server/db';
 
-export default async function handler(req: any, res: any) {
-  if (!verifyWebhookSecret(req)) return res.status(401).json({ message: 'bad webhook secret' });
+export const dynamic = 'force-dynamic';
 
-  const row = req.body?.event?.data?.new;
+export async function POST(req: Request) {
+  if (!verifyActionSecret(req)) return Response.json({ message: 'bad action secret' }, { status: 401 });
+  const body: any = await req.json().catch(() => ({}));
+  const row = body?.event?.data?.new;
   const message = row?.message ?? '(no message)';
   const channel = row?.channel ?? 'log';
 
@@ -24,5 +26,5 @@ export default async function handler(req: any, res: any) {
       console.error('slack post failed', e);
     }
   }
-  return res.status(200).json({ delivered: true });
+  return Response.json({ delivered: true });
 }

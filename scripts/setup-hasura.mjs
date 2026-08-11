@@ -218,7 +218,10 @@ async function main() {
       { name: 'StepResult', fields: [{ name: 'step_run_id', type: 'String' }, { name: 'status', type: 'String!' }, { name: 'message', type: 'String' }] },
     ],
   });
-  const secretHeader = [{ name: 'nhost-webhook-secret', value_from_env: 'NHOST_WEBHOOK_SECRET' }];
+  // Shared secret sent to the Vercel API routes so they can't be driven with a forged
+  // session_variables payload. Value comes from ACTION_SECRET in .env (also set in Vercel).
+  const ACTION_SECRET = process.env.ACTION_SECRET || '';
+  const secretHeader = ACTION_SECRET ? [{ name: 'x-action-secret', value: ACTION_SECRET }] : [];
   const action = async (name, args, output, comment) => {
     await meta('drop_action', { name, clear_data: true }, { ignore: IGN_EXISTS });
     await meta('create_action', {

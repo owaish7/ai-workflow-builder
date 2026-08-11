@@ -1,10 +1,7 @@
 // Real LLM call via Groq's OpenAI-compatible API. Falls back to a stubbed response
 // with a disclosed artificial delay if GROQ_API_KEY is not set (allowed by the brief).
-
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
-
-export const usingStub = () => !GROQ_API_KEY;
 
 export async function llmCall(prompt: string, system?: string): Promise<string> {
   if (!GROQ_API_KEY) {
