@@ -12,7 +12,7 @@ Auth) + GraphQL + Next.js**.
   `graphql-ws` for live subscriptions.
 - **LLM:** Groq (`llama-3.3-70b-versatile`), with a disclosed stubbed fallback if no key.
 
-> **Live app:** _add your Vercel URL here_
+> **Live app:** https://ai-workflow-builder-two.vercel.app
 > **Demo recording:** _add your recording link here_
 
 > **Why handlers on Vercel, not nhost Functions?** nhost Functions deploy via nhost's
