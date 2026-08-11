@@ -13,7 +13,7 @@ Auth) + GraphQL + Next.js**.
 - **LLM:** Groq (`llama-3.3-70b-versatile`), with a disclosed stubbed fallback if no key.
 
 > **Live app:** https://ai-workflow-builder-two.vercel.app
-> **Demo recording:** _add your recording link here_
+> **Demo recording:** https://drive.google.com/file/d/1SNJl4spxmBTfGAmB2ZfEMwrO-7R8puFd/view?usp=sharing
 
 > **Why handlers on Vercel, not nhost Functions?** nhost Functions deploy via nhost's
 > Git integration, which re-validates the whole `nhost.toml` project config on every
