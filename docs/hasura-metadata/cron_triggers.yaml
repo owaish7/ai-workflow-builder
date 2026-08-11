@@ -1,0 +1,14 @@
+- name: scheduled_workflow_tick
+  webhook: "{{FUNCTIONS_BASE_URL}}/scheduled"
+  schedule: "* * * * *"
+  include_in_metadata: true
+  payload: {}
+  retry_conf:
+    num_retries: 0
+    timeout_seconds: 60
+    tolerance_seconds: 21600
+    retry_interval_seconds: 10
+  headers:
+    - name: nhost-webhook-secret
+      value_from_env: NHOST_WEBHOOK_SECRET
+  comment: Fires every minute; the scheduled function runs any due `scheduled` triggers.

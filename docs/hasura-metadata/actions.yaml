@@ -1,0 +1,41 @@
+actions:
+  - name: triggerWorkflowRun
+    definition:
+      kind: synchronous
+      handler: "{{FUNCTIONS_BASE_URL}}/triggerWorkflowRun"
+      forward_client_headers: false
+      headers:
+        - name: nhost-webhook-secret
+          value_from_env: NHOST_WEBHOOK_SECRET
+    permissions:
+      - role: user
+    comment: >-
+      Starts a workflow run. Verifies caller is owner/editor in the workflow's org,
+      checks the org quota, creates the run, executes steps in order (real LLM/HTTP
+      calls with one retry), and pauses on approval_gate.
+  - name: approveStep
+    definition:
+      kind: synchronous
+      handler: "{{FUNCTIONS_BASE_URL}}/approveStep"
+      forward_client_headers: false
+      headers:
+        - name: nhost-webhook-secret
+          value_from_env: NHOST_WEBHOOK_SECRET
+    permissions:
+      - role: user
+    comment: >-
+      Layer 2b: approves a paused approval_gate step. The handler re-checks the
+      approver is owner/editor in the run's org (a mid-execution decision that
+      cannot be a row permission) before resuming the run.
+custom_types:
+  objects:
+    - name: RunResult
+      fields:
+        - { name: run_id, type: String }
+        - { name: status, type: String! }
+        - { name: message, type: String }
+    - name: StepResult
+      fields:
+        - { name: step_run_id, type: String }
+        - { name: status, type: String! }
+        - { name: message, type: String }

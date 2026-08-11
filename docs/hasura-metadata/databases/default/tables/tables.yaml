@@ -1,0 +1,314 @@
+# Canonical Hasura metadata for the AI Workflow Builder.
+# Relationships + BOTH permission layers (role `user`) are shown here.
+# Layer 1 = org/role scoping via org_members joined on X-Hasura-User-Id.
+# Layer 2a = step/trigger insert gating (db_write/notify/webhook => owner only).
+# NOTE: event-trigger/action handler URLs use {{FUNCTIONS_BASE_URL}} templating.
+#       On nhost Cloud the reliable apply path is `node scripts/setup-hasura.mjs`,
+#       which registers the same objects with absolute function URLs.
+
+# ============================ organizations ============================
+- table:
+    schema: public
+    name: organizations
+  array_relationships:
+    - name: members
+      using:
+        foreign_key_constraint_on: { table: { schema: public, name: org_members }, column: org_id }
+    - name: workflows
+      using:
+        foreign_key_constraint_on: { table: { schema: public, name: workflows }, column: org_id }
+    - name: runs
+      using:
+        foreign_key_constraint_on: { table: { schema: public, name: workflow_runs }, column: org_id }
+  select_permissions:
+    - role: user
+      permission:
+        columns: [id, name, calls_used, calls_allowed, period_start, created_at]
+        filter:
+          members: { user_id: { _eq: X-Hasura-User-Id } }
+  update_permissions:
+    - role: user
+      permission:
+        columns: [name]
+        filter:
+          members: { user_id: { _eq: X-Hasura-User-Id }, role: { _eq: owner } }
+        check: {}
+
+# ============================ org_members ============================
+- table:
+    schema: public
+    name: org_members
+  object_relationships:
+    - name: organization
+      using: { foreign_key_constraint_on: org_id }
+  select_permissions:
+    - role: user
+      permission:
+        columns: [id, org_id, user_id, role, created_at]
+        filter:
+          organization: { members: { user_id: { _eq: X-Hasura-User-Id } } }
+  insert_permissions:
+    - role: user
+      permission:
+        columns: [org_id, user_id, role]
+        check:
+          organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _eq: owner } } }
+  update_permissions:
+    - role: user
+      permission:
+        columns: [role]
+        filter:
+          organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _eq: owner } } }
+        check: {}
+  delete_permissions:
+    - role: user
+      permission:
+        filter:
+          organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _eq: owner } } }
+
+# ============================ workflows ============================
+- table:
+    schema: public
+    name: workflows
+  object_relationships:
+    - name: organization
+      using: { foreign_key_constraint_on: org_id }
+  array_relationships:
+    - name: steps
+      using:
+        foreign_key_constraint_on: { table: { schema: public, name: workflow_steps }, column: workflow_id }
+    - name: triggers
+      using:
+        foreign_key_constraint_on: { table: { schema: public, name: workflow_triggers }, column: workflow_id }
+    - name: runs
+      using:
+        foreign_key_constraint_on: { table: { schema: public, name: workflow_runs }, column: workflow_id }
+  select_permissions:
+    - role: user
+      permission:
+        columns: [id, org_id, name, created_by, created_at]
+        filter:
+          organization: { members: { user_id: { _eq: X-Hasura-User-Id } } }
+  insert_permissions:
+    - role: user
+      permission:
+        columns: [org_id, name]
+        set: { created_by: x-hasura-user-id }
+        check:
+          organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _in: [owner, editor] } } }
+  update_permissions:
+    - role: user
+      permission:
+        columns: [name]
+        filter:
+          organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _in: [owner, editor] } } }
+        check:
+          organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _in: [owner, editor] } } }
+  delete_permissions:
+    - role: user
+      permission:
+        filter:
+          organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _in: [owner, editor] } } }
+
+# ==================== workflow_steps (Layer 2a gating) ====================
+- table:
+    schema: public
+    name: workflow_steps
+  object_relationships:
+    - name: workflow
+      using: { foreign_key_constraint_on: workflow_id }
+  select_permissions:
+    - role: user
+      permission:
+        columns: [id, workflow_id, position, type, config, created_at]
+        filter:
+          workflow: { organization: { members: { user_id: { _eq: X-Hasura-User-Id } } } }
+  insert_permissions:
+    - role: user
+      permission:
+        columns: [workflow_id, position, type, config]
+        # Layer 2a: db_write/notify steps require role=owner; others allow owner/editor.
+        check:
+          _or:
+            - _and:
+                - type: { _nin: [db_write, notify] }
+                - workflow: { organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _in: [owner, editor] } } } }
+            - _and:
+                - type: { _in: [db_write, notify] }
+                - workflow: { organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _eq: owner } } } }
+  update_permissions:
+    - role: user
+      permission:
+        columns: [position, type, config]
+        filter:
+          workflow: { organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _in: [owner, editor] } } } }
+        check:
+          _or:
+            - _and:
+                - type: { _nin: [db_write, notify] }
+                - workflow: { organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _in: [owner, editor] } } } }
+            - _and:
+                - type: { _in: [db_write, notify] }
+                - workflow: { organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _eq: owner } } } }
+  delete_permissions:
+    - role: user
+      permission:
+        filter:
+          workflow: { organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _in: [owner, editor] } } } }
+
+# ==================== workflow_triggers (Layer 2a gating) ====================
+- table:
+    schema: public
+    name: workflow_triggers
+  object_relationships:
+    - name: workflow
+      using: { foreign_key_constraint_on: workflow_id }
+  select_permissions:
+    - role: user
+      permission:
+        columns: [id, workflow_id, type, config, created_at]
+        filter:
+          workflow: { organization: { members: { user_id: { _eq: X-Hasura-User-Id } } } }
+  insert_permissions:
+    - role: user
+      permission:
+        columns: [workflow_id, type, config]
+        # Layer 2a: webhook triggers require role=owner; others allow owner/editor.
+        check:
+          _or:
+            - _and:
+                - type: { _neq: webhook }
+                - workflow: { organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _in: [owner, editor] } } } }
+            - _and:
+                - type: { _eq: webhook }
+                - workflow: { organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _eq: owner } } } }
+  delete_permissions:
+    - role: user
+      permission:
+        filter:
+          workflow: { organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _in: [owner, editor] } } } }
+
+# ==================== workflow_runs (read-only for `user`) ====================
+- table:
+    schema: public
+    name: workflow_runs
+  object_relationships:
+    - name: workflow
+      using: { foreign_key_constraint_on: workflow_id }
+    - name: organization
+      using: { foreign_key_constraint_on: org_id }
+  array_relationships:
+    - name: step_runs
+      using:
+        foreign_key_constraint_on: { table: { schema: public, name: step_runs }, column: run_id }
+  select_permissions:
+    - role: user
+      permission:
+        # No insert/update/delete for `user`: runs are created & advanced only by the
+        # Action handler (admin). This is what stops a viewer from triggering a run.
+        columns: [id, workflow_id, org_id, status, trigger_type, started_by, started_at, finished_at, updated_at]
+        filter:
+          organization: { members: { user_id: { _eq: X-Hasura-User-Id } } }
+
+# ==================== step_runs (read-only; drives the subscription) ====================
+- table:
+    schema: public
+    name: step_runs
+  object_relationships:
+    - name: run
+      using: { foreign_key_constraint_on: run_id }
+    - name: step
+      using: { foreign_key_constraint_on: step_id }
+  select_permissions:
+    - role: user
+      permission:
+        columns: [id, run_id, step_id, position, type, status, input, output, error, attempt, approved_by, approved_at, created_at, updated_at]
+        filter:
+          run: { organization: { members: { user_id: { _eq: X-Hasura-User-Id } } } }
+
+# ==================== db_write_results ====================
+- table:
+    schema: public
+    name: db_write_results
+  object_relationships:
+    - name: organization
+      using: { foreign_key_constraint_on: org_id }
+  select_permissions:
+    - role: user
+      permission:
+        columns: [id, run_id, org_id, payload, created_at]
+        filter:
+          organization: { members: { user_id: { _eq: X-Hasura-User-Id } } }
+
+# ==================== notifications (fires the notify Event Trigger) ====================
+- table:
+    schema: public
+    name: notifications
+  object_relationships:
+    - name: organization
+      using: { foreign_key_constraint_on: org_id }
+  select_permissions:
+    - role: user
+      permission:
+        columns: [id, run_id, org_id, channel, message, created_at]
+        filter:
+          organization: { members: { user_id: { _eq: X-Hasura-User-Id } } }
+  event_triggers:
+    - name: on_notification_insert
+      definition:
+        enable_manual: false
+        insert: { columns: "*" }
+      retry_conf: { num_retries: 0, interval_sec: 10, timeout_sec: 60 }
+      webhook: "{{FUNCTIONS_BASE_URL}}/notify"
+      headers:
+        - name: nhost-webhook-secret
+          value_from_env: NHOST_WEBHOOK_SECRET
+
+# ==================== event_source (fires the DB-event Trigger) ====================
+- table:
+    schema: public
+    name: event_source
+  object_relationships:
+    - name: organization
+      using: { foreign_key_constraint_on: org_id }
+    - name: workflow
+      using: { foreign_key_constraint_on: workflow_id }
+  select_permissions:
+    - role: user
+      permission:
+        columns: [id, org_id, workflow_id, payload, created_at]
+        filter:
+          organization: { members: { user_id: { _eq: X-Hasura-User-Id } } }
+  insert_permissions:
+    - role: user
+      permission:
+        columns: [org_id, workflow_id, payload]
+        check:
+          organization: { members: { user_id: { _eq: X-Hasura-User-Id }, role: { _in: [owner, editor] } } }
+  event_triggers:
+    - name: on_event_source_insert
+      definition:
+        enable_manual: false
+        insert: { columns: "*" }
+      retry_conf: { num_retries: 0, interval_sec: 10, timeout_sec: 60 }
+      webhook: "{{FUNCTIONS_BASE_URL}}/dbEvent"
+      headers:
+        - name: nhost-webhook-secret
+          value_from_env: NHOST_WEBHOOK_SECRET
+
+# ==================== org_usage (aggregation view) ====================
+- table:
+    schema: public
+    name: org_usage
+  array_relationships:
+    - name: members
+      using:
+        manual_configuration:
+          remote_table: { schema: public, name: org_members }
+          column_mapping: { org_id: org_id }
+  select_permissions:
+    - role: user
+      permission:
+        columns: [org_id, calls_used, calls_allowed, period_start, runs_this_month, avg_run_seconds]
+        filter:
+          members: { user_id: { _eq: X-Hasura-User-Id } }
